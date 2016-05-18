@@ -1,0 +1,52 @@
+#!/bin/bash
+#set -x
+
+USER=$(id -nu)
+CMD="git clone"
+CLONEFILE="${HOME}/.gc"
+
+usage()
+{
+  echo "Usage: $0"
+  exit 1
+}
+
+show_clones()
+{
+  [[ -e ${CLONEFILE} ]] && more ${CLONEFILE} && return 0
+}
+
+write_clonefile()
+{
+  echo $1
+  echo $1 >> $CLONEFILE
+}
+
+[[ ! -e $CLONEFILE ]] && touch $CLONEFILE
+
+while getopts "hlf:" arg; do
+  case $arg in
+    h)
+      usage 
+      ;;
+    f)
+      clone_file=${OPTARG}
+      ;;
+    l)
+      show_clones
+      exit 0
+      ;;
+  esac
+done
+shift $((OPTIND-1))
+
+[[ $1 == "" ]] && usage
+repo_url="$1"
+
+eval $CMD $1
+if [[ $? != 0 ]]
+then
+  echo "Failed to clone repo!"
+else
+  write_clonefile "$repo_url"
+fi
