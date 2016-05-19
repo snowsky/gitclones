@@ -1,9 +1,10 @@
 #!/bin/bash
-#set -x
+set -x
 
 USER=$(id -nu)
 CMD="git clone"
-CLONEFILE="${HOME}/.gc"
+CLONE_FILE="${HOME}/.gc"
+PROJECT_NAME=""
 
 usage()
 {
@@ -13,16 +14,20 @@ usage()
 
 show_clones()
 {
-  [[ -e ${CLONEFILE} ]] && more ${CLONEFILE} && return 0
+  [[ -e ${CLONE_FILE} ]] && more ${CLONE_FILE} && return 0
 }
 
 write_clonefile()
 {
-  echo $1
-  echo $1 >> $CLONEFILE
+  echo "$PROJECT_NAME $1" >> $CLONE_FILE
 }
 
-[[ ! -e $CLONEFILE ]] && touch $CLONEFILE
+get_project_name()
+{
+  echo $(sed 's/.*\/\(.*\)\.git/\1/' <<< "$1")
+}
+
+[[ ! -e $CLONE_FILE ]] && touch $CLONE_FILE
 
 while getopts "hlf:" arg; do
   case $arg in
@@ -42,6 +47,21 @@ shift $((OPTIND-1))
 
 [[ $1 == "" ]] && usage
 repo_url="$1"
+
+if [ "$repo_url" == "" ]
+then
+  usage
+fi
+
+PROJECT_NAME=$(get_project_name $repo_url)
+
+if [ $(grep -c $repo_url $CLONE_FILE) == 0 ]
+then
+  echo "Not cloned yet!"
+else
+  echo "Cloned in CLONE_FILE!"
+  exit 1
+fi
 
 eval $CMD $1
 if [[ $? != 0 ]]
