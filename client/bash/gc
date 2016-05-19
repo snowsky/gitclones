@@ -1,7 +1,8 @@
 #!/bin/bash
-set -x
+#set -x
 
 USER=$(id -nu)
+DIR=$(pwd)
 CMD="git clone"
 CLONE_FILE="${HOME}/.gc"
 PROJECT_NAME=""
@@ -19,7 +20,7 @@ show_clones()
 
 write_clonefile()
 {
-  echo "$PROJECT_NAME $1" >> $CLONE_FILE
+  echo "$PROJECT_NAME $1 $DIR/$PROJECT_NAME" >> $CLONE_FILE
 }
 
 get_project_name()
