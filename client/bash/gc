@@ -9,7 +9,11 @@ PROJECT_NAME=""
 
 usage()
 {
-  echo "Usage: $0"
+  echo "Usage: "
+  echo "  $0 git_url"
+  echo "  $0 cd dir_name"
+  echo "  $0 -l"
+  echo "  $0 -d project"
   exit 1
 }
 
@@ -18,25 +22,49 @@ show_clones()
   [[ -e ${CLONE_FILE} ]] && more ${CLONE_FILE} && return 0
 }
 
+# Append repo in CLONE_FILE
 write_clonefile()
 {
-  echo "$PROJECT_NAME $1 $DIR/$PROJECT_NAME" >> $CLONE_FILE
+  num=$(awk '/./{line=$0} END{print $1}' $CLONE_FILE)
+  num=$((num+1))
+  echo "$num $PROJECT_NAME $1 $DIR/$PROJECT_NAME" >> $CLONE_FILE
 }
 
+# Remove repo in CLONE_FILE
 remove_repo()
 {
   echo "remove repo $1"
   name=$1
-  dir=$(awk -v "name=$name" '$1==name {print $3}' < $CLONE_FILE)
+  dir=$(awk -v "name=$name" '$1==name {print $NF}' < $CLONE_FILE)
 
   sed -i "/^$name\ /d" ~/.gc
   [[ "$dir" != "/" && "$dir" != "" ]] && rm -fr $dir
 }
 
+# Retrieve project name from repo url
 get_project_name()
 {
   echo $(sed 's/.*\/\(.*\)\.git/\1/' <<< "$1")
 }
+
+chdir()
+{
+  dir=$(awk -v "num=$1" '$1==num {print $NF}' < $CLONE_FILE)
+  cd $dir
+  exec bash
+}
+
+# Change directory
+if [ "$1" == "cd" ]
+then
+  if [ "$2" == "" ]
+  then
+    usage
+  else
+    chdir $2
+    exit 0
+  fi
+fi
 
 [[ ! -e $CLONE_FILE ]] && touch $CLONE_FILE
 
