@@ -23,7 +23,7 @@ func checkErr(err error) {
 }
 
 func init() {
-	db, err := sql.Open("sqlite3", DBFile)
+	db, err := sql.Open("sqlite3", DBFile) 
 	if err != nil {
 		log.Fatal(err)
 	}
