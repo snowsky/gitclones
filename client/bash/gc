@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -x
+set -x
 
 USER=$(id -nu)
 DIR=$(pwd)
@@ -23,6 +23,16 @@ write_clonefile()
   echo "$PROJECT_NAME $1 $DIR/$PROJECT_NAME" >> $CLONE_FILE
 }
 
+remove_repo()
+{
+  echo "remove repo $1"
+  name=$1
+  dir=$(awk -v "name=$name" '$1==name {print $3}' < $CLONE_FILE)
+
+  sed -i "/^$name\ /d" ~/.gc
+  [[ "$dir" != "/" && "$dir" != "" ]] && rm -fr $dir
+}
+
 get_project_name()
 {
   echo $(sed 's/.*\/\(.*\)\.git/\1/' <<< "$1")
@@ -30,13 +40,16 @@ get_project_name()
 
 [[ ! -e $CLONE_FILE ]] && touch $CLONE_FILE
 
-while getopts "hlf:" arg; do
+while getopts "hld:f:" arg; do
   case $arg in
     h)
       usage 
       ;;
     f)
       clone_file=${OPTARG}
+      ;;
+    d)
+      repo_name=${OPTARG}
       ;;
     l)
       show_clones
@@ -45,6 +58,8 @@ while getopts "hlf:" arg; do
   esac
 done
 shift $((OPTIND-1))
+
+[[ "$repo_name" != "" ]] && remove_repo $repo_name && exit 0
 
 [[ $1 == "" ]] && usage
 repo_url="$1"
