@@ -11,7 +11,7 @@ usage()
 {
   echo "Usage: "
   echo "  $0 git_url"
-  echo "  $0 cd dir_name"
+  echo "  $0 cd repo_number"
   echo "  $0 ls|-l"
   echo "  $0 -d project"
   exit 1
