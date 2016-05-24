@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+#set -x
 
 USER=$(id -nu)
 DIR=$(pwd)
@@ -12,7 +12,7 @@ usage()
   echo "Usage: "
   echo "  $0 git_url"
   echo "  $0 cd dir_name"
-  echo "  $0 -l"
+  echo "  $0 ls|-l"
   echo "  $0 -d project"
   exit 1
 }
@@ -54,17 +54,22 @@ chdir()
   exec bash
 }
 
-# Change directory
-if [ "$1" == "cd" ]
-then
-  if [ "$2" == "" ]
-  then
-    usage
-  else
-    chdir $2
+case "$1" in
+  cd)
+    # Change directory
+    if [ "$2" == "" ]
+    then
+      usage
+    else
+      chdir $2
+      exit 0
+    fi
+    ;;
+  ls)
+    show_clones
     exit 0
-  fi
-fi
+    ;;
+esac
 
 [[ ! -e $CLONE_FILE ]] && touch $CLONE_FILE
 
