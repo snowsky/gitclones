@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -x
+set -x
 
 USER=$(id -nu)
 DIR=$(pwd)
@@ -25,6 +25,12 @@ show_clones()
 # Append repo in CLONE_FILE
 write_clonefile()
 {
+  PROJECT_NAME=$(get_project_name $1)
+  if grep $PROJECT_NAME $CLONE_FILE > /dev/null
+  then
+    echo "$PROJECT_NAME is existing..."
+    return
+  fi
   num=$(awk '/./{line=$0} END{print $1}' $CLONE_FILE)
   num=$((num+1))
   echo "$num $PROJECT_NAME $1 $DIR/$PROJECT_NAME" >> $CLONE_FILE
@@ -34,17 +40,32 @@ write_clonefile()
 remove_repo()
 {
   echo "remove repo $1"
-  name=$1
-  dir=$(awk -v "name=$name" '$1==name {print $NF}' < $CLONE_FILE)
+  repo=$1
+  dir=$(awk -v "name=$repo" '$2==name {print $NF}' < $CLONE_FILE)
 
-  sed -i "/^$name\ /d" ~/.gc
+  re_num='^[0-9]+$'
+  if [[ $repo =~ $re_num ]]
+  then
+    sed -i "/^$repo\ /d" ~/.gc
+  else
+    tmpfile=$(mktemp)
+    awk -v "name=$repo" '$2!=name {print $0}' $CLONE_FILE > $tmpfile
+    mv $tmpfile $CLONE_FILE
+  fi
+
   [[ "$dir" != "/" && "$dir" != "" ]] && rm -fr $dir
 }
 
 # Retrieve project name from repo url
 get_project_name()
 {
-  echo $(sed 's/.*\/\(.*\)\.git/\1/' <<< "$1")
+  git_url="$1"
+  if [[ "$git_url" =~ \.git$ ]]
+  then
+    echo $(sed 's/.*\/\(.*\)\.git/\1/' <<< "$git_url")
+  else
+    echo $(sed 's/.*\/\(.*\)/\1/' <<< "$git_url")
+  fi
 }
 
 chdir()
@@ -52,6 +73,25 @@ chdir()
   dir=$(awk -v "num=$1" '$1==num {print $NF}' < $CLONE_FILE)
   cd $dir
   exec bash
+}
+
+scandir()
+{
+  scan_dir=$1
+  if [ "$scan_dir" == "" ]
+  then 
+    scan_dir="."
+  fi
+
+  ls -d ${scan_dir}/*/ | while read dir
+  do
+    (
+      cd $dir
+      git_url=$(git config -l | grep remote.origin.url)
+      git_url=${git_url#*=}
+      write_clonefile $git_url
+    )
+  done
 }
 
 case "$1" in
@@ -73,7 +113,7 @@ esac
 
 [[ ! -e $CLONE_FILE ]] && touch $CLONE_FILE
 
-while getopts "hld:f:" arg; do
+while getopts "hsld:f:" arg; do
   case $arg in
     h)
       usage 
@@ -88,10 +128,15 @@ while getopts "hld:f:" arg; do
       show_clones
       exit 0
       ;;
+    s)
+      willScan=true
+      dir=${OPTARG}
+      ;;
   esac
 done
 shift $((OPTIND-1))
 
+[[ "$willScan" == true ]] && scandir $dir && exit 0
 [[ "$repo_name" != "" ]] && remove_repo $repo_name && exit 0
 
 [[ $1 == "" ]] && usage
