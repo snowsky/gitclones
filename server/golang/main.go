@@ -2,7 +2,7 @@ package main
 
 import (
 	"database/sql"
-	_ "fmt"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
@@ -82,14 +82,38 @@ func get_repos() (r []ClonedRepos) {
 func main() {
 	r := gin.Default()
 
-	r.GET("/ping", func(c *gin.Context) {
-		c.String(200, "pong")
-	})
+	v1 := r.Group("api/v1")
+	{
+		v1.GET("/ping", func(c *gin.Context) {
+			c.String(200, "pong")
+		})
 
-	r.GET("/repos", func(c *gin.Context) {
-		repos = get_repos()
-		c.JSON(200, repos)
-	})
+		v1.GET("/repos", func(c *gin.Context) {
+			repos = get_repos()
+			c.JSON(200, repos)
+		})
+
+		v1.POST("/repos", func(c *gin.Context) {
+			var repo ClonedRepos
+			c.Bind(&repo)
+			if repo.Name != "" && repo.Url != "" {
+				db, err := sql.Open("sqlite3", DBFile) 
+				if err != nil {
+					log.Fatal(err)
+				}
+				defer db.Close()
+
+				sqlStmt := fmt.Sprintf("insert into cloned_repos (name, url) values('%s', '%s')", repo.Name, repo.Url);
+				_, err = db.Exec(sqlStmt)
+				if err != nil {
+					log.Printf("%q: %s\n", err, sqlStmt)
+					return
+				}
+				fmt.Printf("%s\n", repo)
+			}
+			log.Printf("%s\n", c)
+		})
+	}
 
 	r.Run(":8080")
 }
